@@ -20,6 +20,8 @@ const Reservation = () => {
     isDurationAvailable,
     confirmReservation,
     loading,
+    paymentMethod,
+    setPaymentMethod,
   } = useReservation();
 
 if( loading) return <ReservationSkeleton />;
@@ -57,6 +59,23 @@ if( loading) return <ReservationSkeleton />;
               pricePerHour={pricePerHour}
             />
           )}
+
+          {selectedStartTime && duration > 0 && (
+            <div className="mt-4">
+              <h3 className="font-semibold mb-2">Select Payment Method:</h3>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" className="radio" value="UPI" checked={paymentMethod === "UPI"} onChange={(e) => setPaymentMethod(e.target.value)} />
+                  UPI (Razorpay)
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" className="radio" value="Cash" checked={paymentMethod === "Cash"} onChange={(e) => setPaymentMethod(e.target.value)} />
+                  Cash at Venue
+                </label>
+              </div>
+            </div>
+          )}
+
           <div className="mt-6">
             <button
               className="btn btn-primary w-full relative"

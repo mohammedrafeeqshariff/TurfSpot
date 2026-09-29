@@ -23,6 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.*
+!.env.sample
+!env.sample
 
+test*.js
 
 /*.md

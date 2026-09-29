@@ -53,7 +53,8 @@ export const verifyPayment = async (req, res) => {
     const formattedDate = format(parseISO(selectedTurfDate), "d MMM yyyy");
 
     // verify the Razorpay signature
-    const hmac = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET);
+    const secret = process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_SECRET_KEY;
+    const hmac = crypto.createHmac("sha256", secret);
     hmac.update(`${orderId}|${paymentId}`);
     const generatedSignature = hmac.digest("hex");
     if (generatedSignature !== razorpay_signature) {
@@ -139,6 +140,97 @@ export const verifyPayment = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in verifyPayment", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while processing your booking",
+    });
+  }
+};
+
+export const cashBooking = async (req, res) => {
+  const userId = req.user.user;
+
+  const {
+    id: turfId,
+    duration,
+    startTime,
+    endTime,
+    selectedTurfDate,
+    totalPrice,
+  } = req.body;
+
+  try {
+    const formattedStartTime = format(parseISO(startTime), "hh:mm a");
+    const formattedEndTime = format(parseISO(endTime), "hh:mm a");
+    const formattedDate = format(parseISO(selectedTurfDate), "d MMM yyyy");
+
+    const adjustedStartTime = adjustTime(startTime, selectedTurfDate);
+    const adjustedEndTime = adjustTime(endTime, selectedTurfDate);
+
+    const [user, turf] = await Promise.all([
+      User.findById(userId),
+      Turf.findById(turfId),
+    ]);
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    if (!turf) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Turf not found" });
+    }
+
+    // generate QR code
+    const QRcode = await generateQRCode(
+      totalPrice,
+      formattedStartTime,
+      formattedEndTime,
+      formattedDate,
+      turf.name,
+      turf.location
+    );
+
+    const [timeSlot, booking] = await Promise.all([
+      TimeSlot.create({
+        turf: turfId,
+        startTime: adjustedStartTime,
+        endTime: adjustedEndTime,
+      }),
+      Booking.create({
+        user: userId,
+        turf: turfId,
+        timeSlot: null, 
+        totalPrice,
+        qrCode: QRcode,
+        payment: { orderId: 'CASH', paymentId: 'CASH' },
+      }),
+    ]);
+
+    booking.timeSlot = timeSlot._id;
+
+    await Promise.all([
+      booking.save(),
+      User.findByIdAndUpdate(userId, { $push: { bookings: booking._id } }),
+    ]);
+
+    const htmlContent = generateHTMLContent(
+      turf.name,
+      turf.location,
+      formattedDate,
+      formattedStartTime,
+      formattedEndTime,
+      totalPrice,
+      QRcode
+    );
+
+    await generateEmail(user.email, "Booking Confirmation", htmlContent);
+    return res.status(200).json({
+      success: true,
+      message: "Booking successful, Check your email for the receipt",
+    });
+  } catch (error) {
+    console.error("Error in cashBooking", error);
     return res.status(500).json({
       success: false,
       message: "An error occurred while processing your booking",

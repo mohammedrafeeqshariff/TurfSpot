@@ -14,6 +14,7 @@ const useReservation = () => {
   const [timeSlots, setTimeSlots] = useState({ openTime: "", closeTime: "" });
   const [pricePerHour, setPricePerHour] = useState(0);
   const [duration, setDuration] = useState(1);
+  const [paymentMethod, setPaymentMethod] = useState("UPI");
 
 
 
@@ -49,6 +50,7 @@ const useReservation = () => {
     selectedStartTime,
     duration,
     pricePerHour,
+    paymentMethod,
     setLoading
   );
 
@@ -58,6 +60,8 @@ const useReservation = () => {
     duration,
     availableTimes,
     timeSlots,
+    paymentMethod,
+    setPaymentMethod,
     handleDateChange,
     handleTimeSelection,
     handleDurationChange,

@@ -1,4 +1,6 @@
 import express from "express";
+import dns from "node:dns";
+dns.setDefaultResultOrder("ipv4first");
 import cors from "cors";
 import connectDB from "./config/database.js";
 import dotenv from "dotenv";
@@ -39,3 +41,5 @@ const startServer = async () => {
 
 // Start the server
 startServer();
+
+export default app;
